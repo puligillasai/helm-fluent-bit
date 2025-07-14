@@ -1,38 +1,43 @@
+# Fluent Bit Helm Chart values override
 serviceAccount:
   create: true
   name: fluent-bit
 
-backend:
-  type: es  # Elasticsearch/OpenSearch type
+rbac:
+  create: true
 
-output:
+backend:
+  type: es
   es:
-    enabled: true
-    host: log-proxy.example.com
+    host: "your-opensearch-host"       # e.g., search-cluster.us-east-1.es.amazonaws.com
     port: 443
+    index: "fluentbit"
+    type: "_doc"
+    logstashPrefix: "fluentbit"
     tls: true
-    http_user: "your_user"      # optional, if basic auth used
-    http_passwd: "your_pass"    # optional, if basic auth used
-    index: kubernetes-logs
-    type: _doc
-    logstash_prefix: fluentbit
-    replace_dots: true
+    httpUser: "${OPENSEARCH_USER}"         # From secret
+    httpPassword: "${OPENSEARCH_PASSWORD}" # From secret
+    tlsVerify: false
+
+envFrom:
+  - secretRef:
+      name: fluentbit-opensearch-secret
 
 input:
   tail:
     enabled: true
-    path: /var/log/containers/*.log
+    path: "/var/log/containers/*.log"
     parser: docker
     tag: kube.*
-    refresh_interval: 5
-    mem_buf_limit: 5MB
-    skip_long_lines: true
+    refreshInterval: 5
+    memBufLimit: 5MB
+    skipLongLines: true
 
 filters:
   kubernetes:
     enabled: true
     match: kube.*
-    buffer_size: 0
-    kube_url: https://kubernetes.default.svc:443
-    merge_log: true
-    k8s_logging_parser: true
+    mergeLog: true
+    keepLog: false
+    k8sTagPrefix: "kube.var.log.containers."
+    annotations: false
