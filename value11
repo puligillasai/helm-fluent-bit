@@ -1,0 +1,34 @@
+[SERVICE]
+    Parsers_File /fluent-bit/parsers/parsers.conf
+
+[INPUT]
+    Name tail
+    Tag kube.*
+    Path /var/log/containers/*.log
+    DB /var/log/flb_kube.db
+    Parser docker
+    Docker_Mode On
+    Mem_Buf_Limit 5MB
+    Skip_Long_Lines On
+    Refresh_Interval 10
+
+[FILTER]
+    Name kubernetes
+    Match kube.*
+    Kube_URL https://kubernetes.default.svc.cluster.local:443
+    Merge_Log On
+    Merge_Log_Key data
+    Keep_Log On
+    K8S-Logging.Parser On
+    K8S-Logging.Exclude On
+    Buffer_Size 32k
+
+[OUTPUT]
+    Name opensearch
+    Match *
+    Host opensearch.my-domain.com
+    Port 443
+    TLS On
+    Retry_Limit 6
+    Replace_Dots On
+    Index kubernetes-logs
