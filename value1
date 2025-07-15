@@ -1,0 +1,61 @@
+# fluentbit-values.yaml
+
+service:
+  type: ClusterIP
+  port: 2020
+
+input:
+  tail:
+    enabled: true
+    path: /var/log/containers/*.log
+    multiline:
+      enabled: false
+    parser: docker
+
+filter:
+  kubernetes:
+    enabled: true
+    bufferSize: 0
+    kubeURL: https://kubernetes.default.svc:443
+    kubeCAFile: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+    kubeTokenFile: /var/run/secrets/kubernetes.io/serviceaccount/token
+    labels: true
+    annotations: true
+
+output:
+  opensearch:
+    enabled: true
+    host: <your-opensearch-endpoint>
+    port: 443
+    tls: true
+    awsAuth: true
+    awsRegion: <your-region>
+    index: fluentbit
+    type: _doc
+    logstash_format: true
+    time_key: "@timestamp"
+    replace_dots: true
+    suppress_type_name: true
+
+  stdout:
+    enabled: false
+
+parsers:
+  enabled: true
+  parsers.conf: |
+    [PARSER]
+        Name docker
+        Format json
+        Time_Key time
+        Time_Format %Y-%m-%dT%H:%M:%S.%L
+        Time_Keep On
+        Decode_Field_As escaped_utf8 log do_next
+        Decode_Field_As json log
+
+resources:
+  limits:
+    memory: 200Mi
+    cpu: 100m
+  requests:
+    memory: 100Mi
+    cpu: 100m
